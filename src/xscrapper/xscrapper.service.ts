@@ -1,11 +1,13 @@
 import { HttpService } from '@nestjs/axios';
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Account, StatusTypeEnum } from 'src/database/schemas/account.schema';
 import { franc } from 'franc-min';
 import * as cheerio from 'cheerio';
 import { BotService } from './bot.service';
+import { Cron } from '@nestjs/schedule';
+import { relatedWords } from './utils/words';
 
 type QueryType = 'Top' | 'Latest' | 'People';
 
@@ -32,10 +34,16 @@ interface UserResult {
 }
 
 @Injectable()
-export class XscrapperService {
+export class XscrapperService implements OnModuleInit {
   private logger = new Logger(XscrapperService.name);
-
   readonly botToken = process.env.TELEGRAM_TOKEN;
+  private isGeneralScrappingRunning = false;
+  private isAccountDetailsRunning = false;
+
+  onModuleInit() {
+    // Runs instantly on startup
+    this.runGeneralScrapper();
+  }
 
   constructor(
     private readonly httpService: HttpService,
@@ -502,9 +510,7 @@ export class XscrapperService {
       const $ = cheerio.load(html);
       const bodyText = $('body').text().toLowerCase();
       const usernameLower = username.toLowerCase();
-
       console.log(bodyText);
-
       if (
         bodyText.includes(
           `if you have telegram, you can contact @${usernameLower} right away.`,
@@ -663,4 +669,125 @@ export class XscrapperService {
       console.log(error);
     }
   }
+  private unusedWords = [...relatedWords];
+
+  private getRandomTerm() {
+    if (this.unusedWords.length === 0) {
+      this.unusedWords = [...relatedWords]; // reset cycle
+    }
+    const randomIndex = Math.floor(Math.random() * this.unusedWords.length);
+    const term = this.unusedWords[randomIndex];
+    this.unusedWords.splice(randomIndex, 1);
+    return term;
+  }
+
+  @Cron('*/10 * * * *') //10 mins
+  async runGeneralScrapper() {
+    if (this.isGeneralScrappingRunning) {
+      console.log('Previous cron still running, skipping...');
+      return;
+    }
+    const randomWord = this.getRandomTerm();
+    console.log(randomWord);
+    this.isGeneralScrappingRunning = true;
+
+    try {
+      await this.scrapeData(randomWord, 'Top');
+      await this.scrapeData(randomWord, 'Latest');
+      await this.scrapeData(randomWord, 'People');
+    } catch (error) {
+      console.error('Error fetching users :', error);
+    } finally {
+      this.isGeneralScrappingRunning = false;
+    }
+  }
+
+  // @Cron('0 */1 * * *')
+  // async runGeneralScrapper() {
+  //   if (this.isGeneralScrappingRunning) {
+  //     console.log('Previous cron still running, skipping...');
+  //     return;
+  //   }
+
+  //   this.isGeneralScrappingRunning = true;
+
+  //   console.log('running General scrapper cron');
+
+  //   try {
+  //     const accounts = await this.AccountModel.find();
+  //     if (accounts.length === 0) {
+  //       console.log('no account to track');
+  //       return;
+  //     }
+
+  //     for (const account of accounts) {
+  //       console.log('working on:', account.username);
+  //       this.key = this.getNextApiKey();
+
+  //       const accountDetail = await this.fetchNewFollowers(account.userId);
+
+  //       if (
+  //         accountDetail.newFollowers.length > 0 &&
+  //         accountDetail.followers.length !== accountDetail.newFollowers.length
+  //       ) {
+  //         console.log('there is a new user for:', accountDetail.username);
+  //         console.log(
+  //           'number of new users:',
+  //           accountDetail.newFollowers.length,
+  //         );
+
+  //         if (accountDetail.newFollowers.length > 100) {
+  //           const chunkedFollowers = chunkArray(
+  //             accountDetail.newFollowers,
+  //             100,
+  //           );
+
+  //           for (const chunk of chunkedFollowers) {
+  //             const markUp = await newFollowersMarkUp(chunk, account);
+  //             const replyMarkup = {
+  //               inline_keyboard: markUp.keyboard,
+  //             };
+
+  //             for (const chatId of accountDetail.chatIds) {
+  //               // if (chatId.toString() === '7985572406') continue;
+  //               try {
+  //                 await this.instagramBot.sendMessage(chatId, markUp.message, {
+  //                   reply_markup: replyMarkup,
+  //                   parse_mode: 'HTML',
+  //                 });
+  //               } catch (error) {
+  //                 console.log(error);
+  //               }
+  //             }
+  //           }
+  //         } else {
+  //           const markUp = await newFollowersMarkUp(
+  //             accountDetail.newFollowers,
+  //             account,
+  //           );
+  //           const replyMarkup = {
+  //             inline_keyboard: markUp.keyboard,
+  //           };
+
+  //           for (const chatId of accountDetail.chatIds) {
+  //             try {
+  //               await this.instagramBot.sendMessage(chatId, markUp.message, {
+  //                 reply_markup: replyMarkup,
+  //                 parse_mode: 'HTML',
+  //               });
+  //             } catch (error) {
+  //               console.log(error);
+  //             }
+  //           }
+  //         }
+  //       }
+  //       console.log('Done working on:', account.username);
+  //       // DO NOT `return` here — keep going to the next account
+  //     }
+  //   } catch (error) {
+  //     console.error('Error fetching users :', error);
+  //   } finally {
+  //     this.isGeneralScrappingRunning = false;
+  //   }
+  // }
 }

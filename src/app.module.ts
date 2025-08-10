@@ -3,9 +3,10 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { XscrapperModule } from './xscrapper/xscrapper.module';
 import { DatabaseModule } from './database/database.module';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
-  imports: [XscrapperModule, DatabaseModule],
+  imports: [XscrapperModule, DatabaseModule, ScheduleModule.forRoot()],
   controllers: [AppController],
   providers: [AppService],
 })

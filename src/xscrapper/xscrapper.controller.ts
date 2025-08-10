@@ -7,7 +7,7 @@ export class XscrapperController {
 
   @Get()
   scrapData() {
-    return this.xscrapperService.scrapeData('crypto', 'Top');
+    return this.xscrapperService.scrapeData('solana', 'Top');
   }
 
   @Post()
