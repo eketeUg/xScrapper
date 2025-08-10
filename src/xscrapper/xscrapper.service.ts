@@ -682,7 +682,8 @@ export class XscrapperService implements OnModuleInit {
   }
 
   // @Cron('*/10 * * * *') //10 mins
-  @Cron('*/5 * * * *')
+  // @Cron('*/5 * * * *')
+  @Cron('*/30 * * * * *')
   async runGeneralScrapper() {
     if (this.isGeneralScrappingRunning) {
       console.log('Previous cron still running, skipping...');
