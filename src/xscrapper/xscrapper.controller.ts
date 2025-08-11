@@ -7,7 +7,8 @@ export class XscrapperController {
 
   @Get()
   scrapData() {
-    return this.xscrapperService.scrapeData('solana', 'Top');
+    // return this.xscrapperService.scrapeData('solana', 'Top');
+    return this.xscrapperService.checkPendingStatus();
   }
 
   @Post()

@@ -1,12 +1,12 @@
-GET http://localhost:3000/xscrapper
-Content-Type: application/json
+GET http://localhost:4213/xscrapper
+# Content-Type: application/json
 
 
-# POST http://localhost:3000/xscrapper
+# POST http://localhost:4213/xscrapper
 # Content-Type: application/json
 
 # {
-#     "username":"cryptoxwhalee"
+#     "username":"official_ipo_mantra"
 # }
 
 # https://api.telegram.org/bot<BotToken>/account.checkUsername

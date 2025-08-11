@@ -23,7 +23,7 @@ export class LinkData {
   source: LinkSourceEnum;
 
   @Prop()
-  status: string;
+  status: StatusTypeEnum;
 
   @Prop()
   isChannelTitle: string;

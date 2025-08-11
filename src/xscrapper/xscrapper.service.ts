@@ -41,7 +41,7 @@ export class XscrapperService implements OnModuleInit {
   private isAccountDetailsRunning = false;
 
   onModuleInit() {
-    // Runs instantly on startup
+    // // Runs instantly on startup
     this.runGeneralScrapper();
   }
 
@@ -683,7 +683,8 @@ export class XscrapperService implements OnModuleInit {
 
   // @Cron('*/10 * * * *') //10 mins
   // @Cron('*/5 * * * *')
-  @Cron('*/30 * * * * *')
+  // @Cron('*/30 * * * * *')
+  @Cron(process.env.CRON)
   async runGeneralScrapper() {
     if (this.isGeneralScrappingRunning) {
       console.log('Previous cron still running, skipping...');
@@ -702,6 +703,32 @@ export class XscrapperService implements OnModuleInit {
     } finally {
       this.isGeneralScrappingRunning = false;
     }
+  }
+
+  async checkPendingStatus() {
+    try {
+      const pendingAccounts = await this.AccountModel.aggregate([
+        {
+          $match: {
+            'linkSources.status': StatusTypeEnum.Pending,
+          },
+        },
+        {
+          $project: {
+            username: 1,
+            linkSources: {
+              $filter: {
+                input: '$linkSources',
+                as: 'link',
+                cond: { $eq: ['$$link.status', StatusTypeEnum.Pending] },
+              },
+            },
+          },
+        },
+      ]);
+
+      return pendingAccounts;
+    } catch {}
   }
 
   // @Cron('0 */1 * * *')
